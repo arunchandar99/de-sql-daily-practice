@@ -1,0 +1,29 @@
+-- Problem: Suppliers Who Undercut the Average
+-- Source: TPCH Practice
+-- Difficulty: Medium
+-- Topics: CTE, Window Functions, AVG OVER, Multiple JOINs
+-- Dataset: Snowflake TPCH
+
+-- Find suppliers offering parts below average supply cost
+-- Show how much below average they are (percentage)
+
+WITH PART_PRICING AS (
+    SELECT 
+        PS_PARTKEY,
+        PS_SUPPKEY, 
+        PS_SUPPLYCOST, 
+        AVG(PS_SUPPLYCOST) OVER (PARTITION BY PS_PARTKEY) AS AVG_SUPPLY_COST
+    FROM PARTSUPP
+)
+
+SELECT 
+    S.S_NAME AS SUPPLIER_NAME,
+    P.P_NAME AS PART_NAME,
+    PP.PS_SUPPLYCOST AS SUPPLIER_PRICE,
+    ROUND(PP.AVG_SUPPLY_COST, 2) AS AVERAGE_PRICE,
+    ROUND((PP.AVG_SUPPLY_COST - PP.PS_SUPPLYCOST) / PP.AVG_SUPPLY_COST * 100, 2) AS PCT_BELOW_AVERAGE
+FROM PART_PRICING PP
+INNER JOIN SUPPLIER S ON PP.PS_SUPPKEY = S.S_SUPPKEY
+INNER JOIN PART P ON PP.PS_PARTKEY = P.P_PARTKEY
+WHERE PP.PS_SUPPLYCOST < PP.AVG_SUPPLY_COST
+ORDER BY SUPPLIER_NAME, PART_NAME;
